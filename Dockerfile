@@ -1,12 +1,14 @@
-﻿FROM mcr.microsoft.com/dotnet/runtime:8.0-alpine AS base
+﻿FROM mcr.microsoft.com/dotnet/runtime:9.0-alpine AS base
 USER $APP_UID
 WORKDIR /app
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+COPY ["VoiceAuditor.sln", "."]
 COPY ["VoiceAuditor.Bot/VoiceAuditor.Bot.csproj", "VoiceAuditor.Bot/"]
-RUN dotnet restore "VoiceAuditor.Bot/VoiceAuditor.Bot.csproj"
+COPY ["VoiceAuditor.Database/VoiceAuditor.Database.csproj", "VoiceAuditor.Database/"]
+RUN dotnet restore
 COPY . .
 WORKDIR "/src/VoiceAuditor.Bot"
 RUN dotnet build "VoiceAuditor.Bot.csproj" -c $BUILD_CONFIGURATION -o /app/build
