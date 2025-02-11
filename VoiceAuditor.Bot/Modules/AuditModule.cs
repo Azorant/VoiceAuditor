@@ -55,7 +55,7 @@ public class AuditModule(DatabaseContext db) : InteractionModuleBase<SocketInter
 
         var embed = new EmbedBuilder()
             .WithTitle("Guild Leaderboard")
-            .WithDescription("Top 10 people with the most time in VC.")
+            .WithDescription($"Top 10 people with the {Enum.GetName(activity)!.ToLower()} time in VC.")
             .WithColor(Color.Blue);
 
         foreach (var record in top)
