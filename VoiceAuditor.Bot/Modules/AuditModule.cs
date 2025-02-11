@@ -14,11 +14,12 @@ public enum Activity
 public class AuditModule(DatabaseContext db) : InteractionModuleBase<SocketInteractionContext>
 {
     [SlashCommand("recent", "Show recent logs")]
-    public async Task RecentCommand([Summary(description: "Show latest records for a specific user")] IUser? user = null)
+    public async Task RecentCommand([Summary(description: "Show latest records for a specific user")] IUser? user = null, bool showBots = false)
     {
         await DeferAsync();
-        var records = await db.AuditLogs.OrderByDescending(x => x.Id)
-            .Where(x => user == null ? x.GuildId == Context.Guild.Id : x.GuildId == Context.Guild.Id && x.UserId == user.Id).Take(5).ToListAsync();
+        var records = await db.AuditLogs.Include(x => x.User).OrderByDescending(x => x.Id)
+            .Where(x => user == null ? x.GuildId == Context.Guild.Id : x.GuildId == Context.Guild.Id && x.UserId == user.Id)
+            .Where(x => user != null || showBots || x.User.IsBot == false).Take(5).ToListAsync();
         var embed = new EmbedBuilder()
             .WithTitle("Latest Records")
             .WithColor(Color.Blue);
@@ -35,11 +36,13 @@ public class AuditModule(DatabaseContext db) : InteractionModuleBase<SocketInter
     }
 
     [SlashCommand("leaderboard", "Show the users with the most time in VC")]
-    public async Task LeaderboardCommand(Activity activity = Activity.Most)
+    public async Task LeaderboardCommand(Activity activity = Activity.Most, bool showBots = false)
     {
         await DeferAsync();
         var records = await db.AuditLogs
+            .Include(x => x.User)
             .Where(x => x.GuildId == Context.Guild.Id && x.Duration != null)
+            .Where(x => showBots || x.User.IsBot == false)
             .GroupBy(x => x.UserId)
             .ToListAsync();
 

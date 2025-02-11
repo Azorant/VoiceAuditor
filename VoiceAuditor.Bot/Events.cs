@@ -61,6 +61,7 @@ public class Events(DatabaseContext db, DiscordSocketClient client)
         {
             // Moved channels so we don't care
             if (oldChannel.VoiceChannel != null && newChannel.VoiceChannel != null) return;
+            await db.AssertUser(user.Id, user.IsBot);
 
             // Joined channel
             if (oldChannel.VoiceChannel == null && newChannel.VoiceChannel != null)
