@@ -1,7 +1,7 @@
 ﻿using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 
-namespace Bot.Template.HostedServices;
+namespace VoiceAuditor.Bot.HostedServices;
 
 internal sealed class ClientStatus(DiscordSocketClient client) : IHostedService, IDisposable
 {
@@ -27,13 +27,17 @@ internal sealed class ClientStatus(DiscordSocketClient client) : IHostedService,
 
     private async void SetStatus(object? state)
     {
-        var status = "/help";
+        var status = "/leaderboard";
         switch (lastStatus)
         {
             case 0:
                 lastStatus++;
                 break;
             case 1:
+                status = "/recent";
+                lastStatus++;
+                break;
+            case 2:
                 status = "eris.gg";
                 lastStatus = 0;
                 break;
