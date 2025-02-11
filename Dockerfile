@@ -1,6 +1,7 @@
 ﻿FROM mcr.microsoft.com/dotnet/runtime:9.0-alpine AS base
-USER $APP_UID
 WORKDIR /app
+RUN apk add --no-cache icu-libs
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 
 FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
 ARG BUILD_CONFIGURATION=Release
