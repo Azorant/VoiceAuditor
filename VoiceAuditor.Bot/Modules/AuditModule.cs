@@ -47,12 +47,12 @@ public class AuditModule(DatabaseContext db) : InteractionModuleBase<SocketInter
             .ToListAsync();
 
         var top = records.Select(x => new { UserId = x.Key, Total = x.Sum(c => c.Duration!.Value.TotalSeconds) })
-            .OrderByDescending(x => x.Total).ToList();
+            .ToList();
 
         top = activity switch
         {
-            Activity.Most => top.Take(10).ToList(),
-            Activity.Least => top.TakeLast(10).ToList(),
+            Activity.Most => top.OrderByDescending(x => x.Total).Take(10).ToList(),
+            Activity.Least => top.OrderBy(x => x.Total).Take(10).ToList(),
             _ => top
         };
 
