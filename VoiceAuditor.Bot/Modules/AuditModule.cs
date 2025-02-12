@@ -13,6 +13,15 @@ public enum Activity
     Least
 }
 
+public enum Range
+{
+    Day,
+    Week,
+    Month,
+    Year,
+    AllTime
+}
+
 public class AuditModule(DatabaseContext db, InteractiveService interactiveService) : InteractionModuleBase<SocketInteractionContext>
 {
     [SlashCommand("recent", "Show recent logs")]
@@ -39,17 +48,46 @@ public class AuditModule(DatabaseContext db, InteractiveService interactiveServi
     }
 
     [SlashCommand("leaderboard", "Show the users with the most time in VC")]
-    public async Task LeaderboardCommand(Activity activity = Activity.Most, bool showBots = false)
+    public async Task LeaderboardCommand(Range range = Range.Month, Activity activity = Activity.Most, bool showBots = false)
     {
         await DeferAsync();
+
+        DateTime? date = range switch
+        {
+            Range.Day => DateTime.UtcNow.AddDays(-1),
+            Range.Week => DateTime.UtcNow.AddDays(-7),
+            Range.Month => DateTime.UtcNow.AddMonths(-1),
+            Range.Year => DateTime.UtcNow.AddYears(-1),
+            _ => null
+        };
+
+        var period = range switch
+        {
+            Range.Day => " in the past day",
+            Range.Week => " in the past week",
+            Range.Month => " in the past month",
+            Range.Year => " in the past year",
+            _ => string.Empty
+        };
+
         var records = await db.AuditLogs
             .Include(x => x.User)
-            .Where(x => x.GuildId == Context.Guild.Id)
+            .Where(x => x.GuildId == Context.Guild.Id && date == null || x.JoinedAt >= date)
             .Where(x => showBots || x.User.IsBot == false)
             .GroupBy(x => x.UserId)
             .ToListAsync();
 
-        var top = records
+        if (records.Count == 0)
+        {
+            await FollowupAsync(embed: new EmbedBuilder()
+                .WithTitle("Guild Leaderboard")
+                .WithDescription($"There's been no vc activity{period}.")
+                .WithColor(Color.Gold)
+                .Build());
+            return;
+        }
+
+        var list = records
             .Select(x =>
                 new
                 {
@@ -58,24 +96,44 @@ public class AuditModule(DatabaseContext db, InteractiveService interactiveServi
                 })
             .ToList();
 
-        top = activity switch
+        list = activity switch
         {
-            Activity.Most => top.OrderByDescending(x => x.Total).Take(10).ToList(),
-            Activity.Least => top.OrderBy(x => x.Total).Take(10).ToList(),
-            _ => top
+            Activity.Most => list.OrderByDescending(x => x.Total).Take(10).ToList(),
+            Activity.Least => list.OrderBy(x => x.Total).Take(10).ToList(),
+            _ => list
         };
 
         var embed = new EmbedBuilder()
             .WithTitle("Guild Leaderboard")
-            .WithDescription($"Top 10 people with the {Enum.GetName(activity)!.ToLower()} time in VC.")
+            .WithDescription($"Showing people with the {Enum.GetName(activity)!.ToLower()} time in VC{period}.")
             .WithColor(Color.Blue);
 
-        foreach (var record in top)
+        foreach (var record in list)
         {
-            embed.AddField($"#{embed.Fields.Count + 1}", $"<@{record.UserId}> with {TimeSpan.FromSeconds(record.Total).Format()}");
+            embed.AddField($"#{embed.Fields.Count + 1}", $"<@{record.UserId}>\n{TimeSpan.FromSeconds(record.Total).Format()}");
         }
 
-        await FollowupAsync(embed: embed.Build());
+        var chunkSize = 10;
+        var paginator = new StaticPaginatorBuilder()
+            .AddUser(Context.User)
+            .WithPages(list.Chunk(chunkSize)
+                .Select((chunk, chunkIndex) => new PageBuilder()
+                    .WithTitle("Guild Leaderboard")
+                    .WithDescription($"Showing people with the {Enum.GetName(activity)!.ToLower()} time in VC{period}.")
+                    .WithFields(chunk
+                        .Select((record, recordIndex) => new EmbedFieldBuilder()
+                            .WithName($"#{chunkIndex * chunkSize + recordIndex + 1:N0}")
+                            .WithValue($"<@{record.UserId}>\n{TimeSpan.FromSeconds(record.Total).Format()}")))
+                    .WithColor(Color.Blue)))
+            .AddOption(new Emoji("◀"), PaginatorAction.Backward, ButtonStyle.Secondary)
+            .AddOption(context => new PaginatorButton(PaginatorAction.Backward, null,
+                $"Page {context.CurrentPageIndex + 1} / {context.MaxPageIndex + 1}", ButtonStyle.Primary, true))
+            .AddOption(new Emoji("▶"), PaginatorAction.Forward, ButtonStyle.Secondary)
+            .AddOption(new Emoji("🔢"), PaginatorAction.Jump, ButtonStyle.Secondary)
+            .WithFooter(PaginatorFooter.None)
+            .Build();
+
+        await interactiveService.SendPaginatorAsync(paginator, Context.Interaction, TimeSpan.FromMinutes(10), InteractionResponseType.DeferredUpdateMessage);
     }
 
     [SlashCommand("audit", "Show users who haven't joined vc in x days")]
@@ -90,7 +148,7 @@ public class AuditModule(DatabaseContext db, InteractiveService interactiveServi
             await FollowupAsync(embed: new EmbedBuilder()
                 .WithTitle("Audit Results")
                 .WithDescription($"There are no people that haven't joined vc in {days} day{Extensions.Plural(days)}.")
-                .WithColor(Color.Blue)
+                .WithColor(Color.Gold)
                 .Build());
             return;
         }
