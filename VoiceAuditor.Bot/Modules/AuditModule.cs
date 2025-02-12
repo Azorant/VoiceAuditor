@@ -98,8 +98,8 @@ public class AuditModule(DatabaseContext db, InteractiveService interactiveServi
 
         list = activity switch
         {
-            Activity.Most => list.OrderByDescending(x => x.Total).Take(10).ToList(),
-            Activity.Least => list.OrderBy(x => x.Total).Take(10).ToList(),
+            Activity.Most => list.OrderByDescending(x => x.Total).ToList(),
+            Activity.Least => list.OrderBy(x => x.Total).ToList(),
             _ => list
         };
 
