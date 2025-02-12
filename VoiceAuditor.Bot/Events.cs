@@ -87,13 +87,11 @@ public class Events(DatabaseContext db, DiscordSocketClient client)
                         UserId = user.Id,
                         GuildId = oldChannel.VoiceChannel.Guild.Id,
                         LeftAt = DateTime.UtcNow,
-                        Duration = TimeSpan.Zero
                     });
                 }
                 else
                 {
                     record.LeftAt = DateTime.UtcNow;
-                    record.Duration = DateTime.UtcNow.Subtract(record.JoinedAt);
                     db.Update(record);
                 }
 

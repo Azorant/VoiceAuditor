@@ -14,6 +14,5 @@ public class AuditLog
     public ulong GuildId { get; set; }
     public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LeftAt { get; set; }
-    public TimeSpan? Duration { get; set; }
     public virtual User User { get; set; } = null!;
 }

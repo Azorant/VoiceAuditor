@@ -1,6 +1,6 @@
 ﻿namespace VoiceAuditor.Bot;
 
-public static class Extentions
+public static class Extensions
 {
     public static string Format(this TimeSpan time)
     {
@@ -12,7 +12,7 @@ public static class Extentions
         return string.Join(' ', parts);
     }
     
-    private static string Plural(int number)
+    public static string Plural(int number)
     {
         return number is > 1 or 0 ? "s" : string.Empty;
     }

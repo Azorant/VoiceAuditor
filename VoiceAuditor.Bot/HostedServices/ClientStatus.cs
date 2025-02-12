@@ -38,6 +38,10 @@ internal sealed class ClientStatus(DiscordSocketClient client) : IHostedService,
                 lastStatus++;
                 break;
             case 2:
+                status = "/audit";
+                lastStatus++;
+                break;
+            case 3:
                 status = "eris.gg";
                 lastStatus = 0;
                 break;

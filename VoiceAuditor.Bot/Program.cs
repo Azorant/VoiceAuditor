@@ -2,6 +2,7 @@
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using Fergun.Interactive;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -22,6 +23,8 @@ try
 
     builder.Services
         .AddDbContext<DatabaseContext>(options => DatabaseContextFactory.CreateDbOptions(options))
+        .AddSingleton(new InteractiveConfig { ReturnAfterSendingPaginator = true })
+        .AddSingleton<InteractiveService>()
         .AddSingleton(new DiscordSocketConfig
         {
             GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildVoiceStates | GatewayIntents.GuildMembers
