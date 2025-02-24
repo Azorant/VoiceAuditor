@@ -59,9 +59,31 @@ public class Events(DatabaseContext db, DiscordSocketClient client)
     {
         Task.Run(async () =>
         {
-            // Moved channels so we don't care
-            if (oldChannel.VoiceChannel != null && newChannel.VoiceChannel != null) return;
             await db.AssertUser(user.Id, user.IsBot);
+            // Moved channels so we don't care unless its afk channel then stop logging
+            if (oldChannel.VoiceChannel != null && newChannel.VoiceChannel != null)
+            {
+                if (newChannel.VoiceChannel.Id == newChannel.VoiceChannel.Guild.AFKChannel.Id)
+                {
+                    var record = await db.AuditLogs.OrderBy(x => x.Id).LastOrDefaultAsync(x => x.GuildId == oldChannel.VoiceChannel.Guild.Id && x.UserId == user.Id);
+                    if (record == null) return;
+                    record.LeftAt = DateTime.UtcNow;
+                    db.Update(record);
+                    await db.SaveChangesAsync();
+                }
+                else if (oldChannel.VoiceChannel.Id == oldChannel.VoiceChannel.Guild.AFKChannel.Id)
+                {
+                    var record = await db.AuditLogs.OrderBy(x => x.Id)
+                        .LastOrDefaultAsync(x => x.GuildId == oldChannel.VoiceChannel.Guild.Id && x.UserId == user.Id && x.LeftAt == null);
+                    if (record != null) return;
+                    await db.AddAsync(new AuditLog
+                    {
+                        UserId = user.Id,
+                        GuildId = newChannel.VoiceChannel.Guild.Id
+                    });
+                    await db.SaveChangesAsync();
+                }
+            }
 
             // Joined channel
             if (oldChannel.VoiceChannel == null && newChannel.VoiceChannel != null)
