@@ -72,7 +72,7 @@ public class AuditModule(DatabaseContext db, InteractiveService interactiveServi
 
         var records = await db.AuditLogs
             .Include(x => x.User)
-            .Where(x => x.GuildId == Context.Guild.Id && date == null || x.JoinedAt >= date)
+            .Where(x => x.GuildId == Context.Guild.Id && (date == null || x.JoinedAt >= date))
             .Where(x => showBots || x.User.IsBot == false)
             .GroupBy(x => x.UserId)
             .ToListAsync();
